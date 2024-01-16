@@ -78,17 +78,18 @@ public class ExportHelper
         var sbVerticies = new StringBuilder();
         var sbFaces = new StringBuilder();
         
+        var i = 0;
         foreach (var voxel in voxels)
         {
-            var i = 0;
             foreach (var vertex in voxel.GetVertices())
             {
                 sbVerticies.AppendLine($"v {vertex.X} {vertex.Y} {vertex.Z}");
             }
-            
+
+            var offset = i * 8;
             foreach (var face in voxel.GetFaces())
             {
-                sbFaces.AppendLine($"f {face.Indices[0]+i} {face.Indices[1]+i} {face.Indices[2]+i}");
+                sbFaces.AppendLine($"f {face.Indices[0]+offset} {face.Indices[1]+offset} {face.Indices[2]+offset}");
             }
 
             i++;
