@@ -59,15 +59,15 @@ for (var x = 0; x < dims[0]; x++)
         var rect = new QuadTreeRect(point.X - 0.5f*deltaX, point.Y-0.5f*deltaY, deltaX, deltaY);
         var foundFaces = quadTree.FindObjects(rect);
         
-        foreach (var face in foundFaces)
+        foreach (var face in faces)
         {
-            var i1 = skullScene.Meshes[face.meshIdx].Vertices[face.face.Indices[0]];
-            var i2 = skullScene.Meshes[face.meshIdx].Vertices[face.face.Indices[1]];
-            var i3 = skullScene.Meshes[face.meshIdx].Vertices[face.face.Indices[2]];
+            // var i1 = skullScene.Meshes[face.meshIdx].Vertices[face.face.Indices[0]];
+            // var i2 = skullScene.Meshes[face.meshIdx].Vertices[face.face.Indices[1]];
+            // var i3 = skullScene.Meshes[face.meshIdx].Vertices[face.face.Indices[2]];
             
-            // var i1 = vertices[face.Indices[0]];
-            // var i2 = vertices[face.Indices[1]];
-            // var i3 = vertices[face.Indices[2]];
+            var i1 = vertices[face.Indices[0]];
+            var i2 = vertices[face.Indices[1]];
+            var i3 = vertices[face.Indices[2]];
 
             var a = new Vector3(i1.X, i1.Y, i1.Z);
             var b = new Vector3(i2.X, i2.Y, i2.Z);
