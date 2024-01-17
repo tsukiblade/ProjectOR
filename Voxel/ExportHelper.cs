@@ -125,7 +125,7 @@ public class PCExporter
         {
            
             sbVerticies.AppendLine(
-                $"v {point.X.ToString().Replace(",", ".")} {point.Y.ToString().Replace(",", ".")} {point.Z.ToString().Replace(",", ".")}");
+                $"{point.X.ToString().Replace(",", ".")} {point.Y.ToString().Replace(",", ".")} {point.Z.ToString().Replace(",", ".")}");
           
         }
 
