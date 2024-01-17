@@ -4,12 +4,12 @@ using Auios.QuadTree;
 using Voxel;
 
 var importer = new AssimpContext();
-var skullPath = Path.Join(AppDomain.CurrentDomain.BaseDirectory, "Resources", "skull.obj");
+var skullPath = Path.Join(AppDomain.CurrentDomain.BaseDirectory, "Resources", "teapot.obj");
 var skullScene = importer.ImportFile(skullPath);
 
 
-var faces = skullScene.Meshes[0].Faces.Concat(skullScene.Meshes[1].Faces).Concat(skullScene.Meshes[2].Faces).ToList();
-var vertices = skullScene.Meshes[0].Vertices.Concat(skullScene.Meshes[1].Vertices).Concat(skullScene.Meshes[2].Vertices).ToList();
+var faces = skullScene.Meshes[0].Faces;
+var vertices = skullScene.Meshes[0].Vertices;
 
 var minPointX = vertices.Min(vector => vector.X);
 var minPointY = vertices.Min(vector => vector.Y);
@@ -43,13 +43,13 @@ for (var x = 0; x < dims[0]; x++)
         var point = new Vector3(
             origin.X + (x + 0.5f) * deltaX,
             origin.Y + (y + 0.5f) * deltaY,
-            origin.Z - 1);
+            origin.Z);
         var ray = new Vector3(0, 0, 1);
         
         var rect = new QuadTreeRect(point.X, point.Y, deltaX, deltaY);
         var foundFaces = quadTree.FindObjects(rect);
         
-        foreach (var face in foundFaces)
+        foreach (var face in faces)
         {
             var i1 = vertices[face.Indices[0]];
             var i2 = vertices[face.Indices[1]];
@@ -81,8 +81,11 @@ for (var x = 0; x < dims[0]; x++)
     }
 }
 
-var exporter = new ExportHelper();
-var voxels = resultCenterPoints.Select(vector => new Voxel.Voxel(vector, deltaX, deltaY, deltaZ)).ToList();
-exporter.ExportToObj(voxels, Path.Join(AppDomain.CurrentDomain.BaseDirectory, "Resources", "result.obj"));
+// var exporter = new ExportHelper();
+// var voxels = resultCenterPoints.Select(vector => new Voxel.Voxel(vector, deltaX, deltaY, deltaZ)).ToList();
+// exporter.ExportToObj(voxels, Path.Join(AppDomain.CurrentDomain.BaseDirectory, "Resources", "result.obj"));
+
+var pcexport = new PCExporter();
+pcexport.ExportToPC(resultCenterPoints, Path.Join(AppDomain.CurrentDomain.BaseDirectory, "Resources", "result_pc.obj"));
 
 Console.WriteLine(resultCenterPoints.Count);
