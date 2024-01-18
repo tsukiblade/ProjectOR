@@ -70,18 +70,17 @@ public class Voxel
 
 public class ExportHelper
 {
-    public void ExportToObj(IEnumerable<Voxel> voxels, string path)
+    public static void ExportToObj(IEnumerable<Voxel> voxels, string path)
     {
-        var vertices = new List<Vector3>();
-        var faces = new List<Vector3>();
-
         var sbVerticies = new StringBuilder();
         var sbFaces = new StringBuilder();
 
         var i = 0;
         foreach (var voxel in voxels)
         {
-            foreach (var vertex in voxel.GetVertices())
+            var vertices = voxel.GetVertices().ToList();
+            
+            foreach (var vertex in vertices)
             {
                 sbVerticies.AppendLine(
                     $"v {vertex.X.ToString().Replace(",", ".")} {vertex.Y.ToString().Replace(",", ".")} {vertex.Z.ToString().Replace(",", ".")}");

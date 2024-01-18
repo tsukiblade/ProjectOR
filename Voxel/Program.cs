@@ -98,7 +98,7 @@ Console.WriteLine(resultCenterPoints.Count);
 
 var exporter = new ExportHelper();
 var voxels = resultCenterPoints.Select(vector => new Voxel.Voxel(vector, deltaX, deltaY, deltaZ)).ToList();
-exporter.ExportToObj(voxels, Path.Join(AppDomain.CurrentDomain.BaseDirectory, "Resources", "result.obj"));
+ExportHelper.ExportToObj(voxels, Path.Join(AppDomain.CurrentDomain.BaseDirectory, "Resources", "result.obj"));
 
 var pcexport = new PCExporter();
 pcexport.ExportToPC(resultCenterPoints, Path.Join(AppDomain.CurrentDomain.BaseDirectory, "Resources", "result_pc.xyz"));
