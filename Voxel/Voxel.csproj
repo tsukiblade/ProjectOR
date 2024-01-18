@@ -10,6 +10,7 @@
     <ItemGroup>
       <PackageReference Include="AssimpNet" Version="4.1.0" />
       <PackageReference Include="Auios.QuadTree" Version="1.1.1" />
+      <PackageReference Include="CommandLineParser" Version="2.9.1" />
       <PackageReference Include="glm" Version="0.9.9.800" />
       <PackageReference Include="OpenTK" Version="4.8.2" />
     </ItemGroup>
@@ -19,6 +20,24 @@
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </None>
       <None Update="Resources\teapot.obj">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="Resources\starfighter.obj">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="Resources\su-57.obj">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="runTeapot64.bat">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="runTeapot128.bat">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="runTeapot64Parallel.bat">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="runTeapot128Parallel.bat">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </None>
     </ItemGroup>

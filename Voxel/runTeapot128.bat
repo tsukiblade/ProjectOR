@@ -1,0 +1,1 @@
+﻿./Voxel.exe -f 'teapot.obj' -x 128 -y 128 -z 128

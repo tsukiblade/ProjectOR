@@ -1,17 +1,39 @@
-﻿using System.Numerics;
+﻿using System.Collections.Concurrent;
+using System.Diagnostics;
+using System.Numerics;
 using Assimp;
-using Auios.QuadTree;
-using OpenTK.Graphics.OpenGL;
+using CommandLine;
 using Voxel;
 
-var importer = new AssimpContext();
-var skullPath = Path.Join(AppDomain.CurrentDomain.BaseDirectory, "Resources", "teapot.obj");
-var skullScene = importer.ImportFile(skullPath);
+var fileName = string.Empty;
+var xDim = 64;
+var yDim = 64;
+var zDim = 64;
+var parallelTasks = 0;
+var shouldSaveOutput = false;
 
-var faces = skullScene.Meshes.SelectMany<Mesh, Face>(mesh => mesh.Faces).ToList();
-var vertices = skullScene.Meshes.SelectMany<Mesh, Vector3D>(mesh => mesh.Vertices).ToList();
-// var faces = skullScene.Meshes[0].Faces;
-// var vertices = skullScene.Meshes[0].Vertices;
+Parser.Default.ParseArguments<Options>(args)
+    .WithParsed(o =>
+    {
+        Console.WriteLine($"File path: {o.FileName}");
+        Console.WriteLine($"X dim: {o.XDim}");
+        Console.WriteLine($"Y dim: {o.YDim}");
+        Console.WriteLine($"Z dim: {o.ZDim}");
+        
+        fileName = o.FileName;
+        xDim = o.XDim;
+        yDim = o.YDim;
+        zDim = o.ZDim;
+        parallelTasks = o.Parallel;
+        shouldSaveOutput = o.ShouldSaveOutput;
+    });
+
+var importer = new AssimpContext();
+var filePath = Path.Join(AppDomain.CurrentDomain.BaseDirectory, "Resources", fileName);
+var scene = importer.ImportFile(filePath);
+
+var faces = scene.Meshes.SelectMany<Mesh, Face>(mesh => mesh.Faces).ToList();
+var vertices = scene.Meshes.SelectMany<Mesh, Vector3D>(mesh => mesh.Vertices).ToList();
 
 var minPointX = vertices.Min(vector => vector.X);
 var minPointY = vertices.Min(vector => vector.Y);
@@ -23,82 +45,103 @@ var maxPointZ = vertices.Max(vector => vector.Z);
 var origin = new Vector3(minPointX, minPointY, minPointZ);
 var maxPoint = new Vector3(maxPointX, maxPointY, maxPointZ);
 
-var widthX = (maxPoint.X - origin.X);
-var heightY = (maxPoint.Y - origin.Y);
+var widthX = maxPoint.X - origin.X;
+var heightY = maxPoint.Y - origin.Y;
 
-var quadTree = new QuadTree<FaceWithMeshIdx>(origin.X, origin.Y, widthX, heightY, new ObjectBound(skullScene.Meshes));
 
-for (int i = 0; i < skullScene.Meshes.Count; ++i)
+for (var i = 0; i < scene.Meshes.Count; ++i)
 {
-    var facesWithIdx = skullScene.Meshes[i].Faces.Select(face => new FaceWithMeshIdx(face, i)).ToList();
+    var facesWithIdx = scene.Meshes[i].Faces.Select(face => new FaceWithMeshIdx(face, i)).ToList();
     Console.WriteLine($"Adding {facesWithIdx.Count} faces with idx for mesh {i}");
-    quadTree.InsertRange(facesWithIdx);
 }
 
 
-var dims = new[] { 64, 64, 64 };
-var deltaX = widthX/dims[0];
-var deltaY = heightY/dims[1];
-var deltaZ = (maxPointZ - minPointZ)/dims[2];
-Console.WriteLine($"{deltaX} {deltaY} {deltaZ}");
+var dims = new[] {xDim, yDim, zDim};
+var deltaX = widthX / dims[0];
+var deltaY = heightY / dims[1];
+var deltaZ = (maxPointZ - minPointZ) / dims[2];
 
-var resultCenterPoints = new List<Vector3>();
+Console.WriteLine($"Dimensions: {dims[0]} {dims[1]} {dims[2]}");
+Console.WriteLine($"Number of faces: {faces.Count}");
+Console.WriteLine($"Number of vertices: {vertices.Count}");
+Console.WriteLine($"Delta X: {deltaX}");
+Console.WriteLine($"Delta Y: {deltaY}");
+Console.WriteLine($"Delta Z: {deltaZ}");
 
-for (var x = 0; x < dims[0]; x++)
+var parallelInfoText = parallelTasks switch
 {
-    for (var y = 0; y < dims[1]; y++)
+    0 or 1 => "Sequential",
+    -1 => "Parallel (all cores). Available threads: " + Environment.ProcessorCount,
+    _ => $"Parallel ({parallelTasks} tasks)"
+};
+Console.WriteLine($"Processing in parallel: {parallelInfoText}");
+Console.WriteLine($"Processing {xDim*yDim*zDim} points in grid");
+
+List<Vector3> resultCenterPoints;
+
+if (parallelTasks is 0 or 1)
+{
+    var stopWatch = new Stopwatch();
+    stopWatch.Start();
+    
+    resultCenterPoints = Voxelizer.Voxelize(origin, new Deltas(deltaX, deltaY, deltaZ), dims, faces, vertices);
+    
+    var ticks = stopWatch.ElapsedTicks;
+    var ms = stopWatch.ElapsedMilliseconds;
+    stopWatch.Stop();
+    Console.WriteLine($"Finished in {ticks} ticks");
+    Console.WriteLine($"Finished in {ms} ms");
+}
+else
+{
+    var xyPairs = new List<(int, int)>();
+    for (var x = 0; x < dims[0]; x++)
     {
-        var zList = new List<float>();
-
-        var point = new Vector3(
-            origin.X + (x + 0.5f) * deltaX,
-            origin.Y + (y + 0.5f) * deltaY,
-            origin.Z);
-        var ray = new Vector3(0, 0, 1);
-        
-        var rect = new QuadTreeRect(point.X - 0.5f*deltaX, point.Y-0.5f*deltaY, deltaX, deltaY);
-        var foundFaces = quadTree.FindObjects(rect);
-        
-        foreach (var face in faces)
+        for (var y = 0; y < dims[1]; y++)
         {
-            // var i1 = skullScene.Meshes[face.meshIdx].Vertices[face.face.Indices[0]];
-            // var i2 = skullScene.Meshes[face.meshIdx].Vertices[face.face.Indices[1]];
-            // var i3 = skullScene.Meshes[face.meshIdx].Vertices[face.face.Indices[2]];
-            
-            var i1 = vertices[face.Indices[0]];
-            var i2 = vertices[face.Indices[1]];
-            var i3 = vertices[face.Indices[2]];
-
-            var a = new Vector3(i1.X, i1.Y, i1.Z);
-            var b = new Vector3(i2.X, i2.Y, i2.Z);
-            var c = new Vector3(i3.X, i3.Y, i3.Z);
-
-            if (Helper.Rti(point, ray, a, b, c, out var intersectPoint))
-            {
-                zList.Add(intersectPoint.Z);
-            }
-        }
-
-        var zc = origin.Z + deltaZ / 2;
-
-        for (var z = 0; z < dims[2]; z++)
-        {
-            var count = zList.Count(zValue => zValue > zc);
-
-            if (count % 2 == 1)
-            {
-                resultCenterPoints.Add(new Vector3(point.X, point.Y, zc));
-            }
-
-            zc += deltaZ;
+            xyPairs.Add((x, y));
         }
     }
-}
-Console.WriteLine(resultCenterPoints.Count);
 
-var exporter = new ExportHelper();
+    var resultCenterPointsParallel = new ConcurrentBag<Vector3>();
+
+    var stopWatch = new Stopwatch();
+    stopWatch.Start();
+    
+    await Parallel.ForEachAsync(xyPairs, new ParallelOptions
+    {
+        MaxDegreeOfParallelism = parallelTasks
+    }, async (tuple, _) =>
+    {
+        
+        var singleResult = Voxelizer.VoxelizeSingle(tuple.Item1, tuple.Item2, origin,
+            new Deltas(deltaX, deltaY, deltaZ), dims, faces, vertices);
+
+        singleResult.ForEach(x => resultCenterPointsParallel.Add(x));
+    });
+    
+    var ticks = stopWatch.ElapsedTicks;
+    var ms = stopWatch.ElapsedMilliseconds;
+    stopWatch.Stop();
+    Console.WriteLine($"Finished in {ticks} ticks");
+    Console.WriteLine($"Finished in {ms} ms");
+    
+    resultCenterPoints = resultCenterPointsParallel.ToList();
+}
+
+Console.WriteLine($"Produced {resultCenterPoints.Count} voxels");
+
+if (!shouldSaveOutput)
+{
+    Console.WriteLine("Not saving output.");
+    return;
+}
+
+Console.WriteLine("Exporting to obj");
+
 var voxels = resultCenterPoints.Select(vector => new Voxel.Voxel(vector, deltaX, deltaY, deltaZ)).ToList();
 ExportHelper.ExportToObj(voxels, Path.Join(AppDomain.CurrentDomain.BaseDirectory, "Resources", "result.obj"));
 
+Console.WriteLine("Exporting to point cloud");
 var pcexport = new PCExporter();
 pcexport.ExportToPC(resultCenterPoints, Path.Join(AppDomain.CurrentDomain.BaseDirectory, "Resources", "result_pc.xyz"));
