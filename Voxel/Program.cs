@@ -28,9 +28,19 @@ Parser.Default.ParseArguments<Options>(args)
         shouldSaveOutput = o.ShouldSaveOutput;
     });
 
+
+var stopWatchImport = new Stopwatch();
+stopWatchImport.Start();
+
 var importer = new AssimpContext();
 var filePath = Path.Join(AppDomain.CurrentDomain.BaseDirectory, "Resources", fileName);
 var scene = importer.ImportFile(filePath);
+
+var ticksImport = stopWatchImport.ElapsedTicks;
+var msImport = stopWatchImport.ElapsedMilliseconds;
+stopWatchImport.Stop();
+Console.WriteLine($"Imported in {ticksImport} ticks");
+Console.WriteLine($"Imported in {msImport} ms");
 
 var faces = scene.Meshes.SelectMany<Mesh, Face>(mesh => mesh.Faces).ToList();
 var vertices = scene.Meshes.SelectMany<Mesh, Vector3D>(mesh => mesh.Vertices).ToList();
@@ -72,10 +82,10 @@ var parallelInfoText = parallelTasks switch
 {
     0 or 1 => "Sequential",
     -1 => "Parallel (all cores). Available threads: " + Environment.ProcessorCount,
-    _ => $"Parallel ({parallelTasks} tasks)"
+    _ => $"Parallel ({parallelTasks} jobs)"
 };
 Console.WriteLine($"Processing in parallel: {parallelInfoText}");
-Console.WriteLine($"Processing {xDim*yDim*zDim} points in grid");
+Console.WriteLine($"Processing {xDim*yDim} rays");
 
 List<Vector3> resultCenterPoints;
 

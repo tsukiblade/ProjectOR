@@ -4,7 +4,7 @@ namespace Voxel;
 
 public class Options
 {
-    [Option('p', "parallel", Required = false, HelpText = "Number of parallel tasks. Default is 0. -1 means all cores.")]
+    [Option('p', "parallel", Required = false, HelpText = "Number of parallel jobs.  -1 means maximum available")]
     public int Parallel { get; set; } = 0;
     
     [Option('f', "file", Required = true, HelpText = "Input file to be processed.")]
